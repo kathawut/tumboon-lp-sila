@@ -34,6 +34,10 @@ LINE_CHANNEL_ACCESS_TOKEN=your_line_channel_access_token_here
 EASYSLIP_API_KEY=your_easyslip_api_key_here
 NEXT_PUBLIC_SUPABASE_URL=your_supabase_url_here
 SUPABASE_SERVICE_ROLE_KEY=your_supabase_service_role_key_here
+TARGET_BANK_ACCOUNT=xxx-x-xxxxx-x
+TARGET_BANK_NAME=ธนาคารกสิกรไทย
+TARGET_ACCOUNT_NAME=วัดลำปะสิงห์
+WELCOME_AMOUNT=500
 ```
 
 ### 3. สร้างตาราง Supabase
@@ -73,6 +77,10 @@ npx vercel
 | `EASYSLIP_API_KEY` | API Key จาก EasySlip |
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key |
+| `TARGET_BANK_ACCOUNT` | เลขบัญชีปลายทางที่ถูกต้อง (optional) |
+| `TARGET_BANK_NAME` | ชื่อธนาคารปลายทาง (optional) |
+| `TARGET_ACCOUNT_NAME` | ชื่อเจ้าของบัญชี (optional) |
+| `WELCOME_AMOUNT` | ยอดเงินที่ต้องการให้โอน (optional) |
 
 ### 5. ตั้งค่า LINE Webhook URL
 
@@ -114,3 +122,13 @@ npm run dev
 ```
 
 เปิด [http://localhost:3000](http://localhost:3000) เพื่อดู status page
+
+## Features
+
+### ตรวจสอบบัญชีปลายทาง (Receiver Validation)
+
+ถ้า `TARGET_BANK_ACCOUNT` ถูก set ไว้ Bot จะเปรียบเทียบเลขบัญชีปลายทางใน slip กับค่าใน env (โดยใช้ 4 ตัวท้ายของเลขบัญชี หรือ full match) ถ้าไม่ตรง Bot จะ reply แจ้งลูกค้าและไม่บันทึก slip ถ้าไม่ได้ set ตัวแปรนี้ Bot จะยอมรับทุก slip ตามปกติ
+
+### ข้อความต้อนรับ (Welcome / Follow Message)
+
+เมื่อลูกค้า add friend หรือส่งข้อความเข้ามา Bot จะตอบกลับข้อความต้อนรับพร้อมข้อมูลบัญชีสำหรับโอนเงิน (ถ้าตั้งค่า env vars ไว้) ทุก env var ที่เกี่ยวข้องเป็น optional — ถ้าไม่ได้ set จะแสดงข้อความ default

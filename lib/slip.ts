@@ -56,6 +56,7 @@ export async function verifySlip(imageBase64: string): Promise<SlipResult | null
           name: slip.receiver?.account?.name ?? '',
         },
       },
+      receiverAccountNumber: slip.receiver?.account?.bank?.account ?? slip.receiver?.account?.number,
     }
   } catch {
     return null

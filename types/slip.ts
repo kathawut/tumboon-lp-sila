@@ -9,6 +9,7 @@ export interface SlipResult {
     bank: { code: string; name: string }
     account: { name: string }
   }
+  receiverAccountNumber?: string
 }
 
 export interface SlipRecord {

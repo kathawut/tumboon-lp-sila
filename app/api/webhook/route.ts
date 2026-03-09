@@ -6,6 +6,31 @@ import { saveSlip } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
+function buildWelcomeMessage(): string {
+  const bankName = process.env.TARGET_BANK_NAME
+  const accountName = process.env.TARGET_ACCOUNT_NAME
+  const accountNumber = process.env.TARGET_BANK_ACCOUNT
+  const amount = process.env.WELCOME_AMOUNT
+
+  if (!bankName && !accountName && !accountNumber && !amount) {
+    return '🙏 สวัสดีครับ/ค่ะ ยินดีต้อนรับ\nกรุณาส่งสลิปการโอนเงินทาง LINE นี้ได้เลยครับ/ค่ะ 🙏'
+  }
+
+  return [
+    '🙏 สวัสดีครับ/ค่ะ ยินดีต้อนรับสู่การทำบุญออนไลน์',
+    '',
+    '💳 กรุณาโอนเงินเข้าบัญชีทำบุญ:',
+    bankName ? `🏦 ธนาคาร: ${bankName}` : null,
+    accountName ? `👤 ชื่อบัญชี: ${accountName}` : null,
+    accountNumber ? `🔢 เลขบัญชี: ${accountNumber}` : null,
+    amount ? `💰 ยอดทำบุญ: ${amount} บาท` : null,
+    '',
+    '📸 เมื่อโอนเรียบร้อยแล้ว กรุณาส่งสลิปการโอนเงินทาง LINE นี้ได้เลยครับ/ค่ะ 🙏',
+  ]
+    .filter((line) => line !== null)
+    .join('\n')
+}
+
 export async function POST(request: NextRequest) {
   try {
     const arrayBuffer = await request.arrayBuffer()
@@ -21,6 +46,24 @@ export async function POST(request: NextRequest) {
     await Promise.all(
       events.map(async (event) => {
         try {
+          // Follow event (add friend)
+          if (event.type === 'follow') {
+            await lineClient().replyMessage(event.replyToken, {
+              type: 'text',
+              text: buildWelcomeMessage(),
+            })
+            return
+          }
+
+          // Text message → welcome message
+          if (event.type === 'message' && event.message.type === 'text') {
+            await lineClient().replyMessage(event.replyToken, {
+              type: 'text',
+              text: buildWelcomeMessage(),
+            })
+            return
+          }
+
           if (event.type !== 'message' || event.message.type !== 'image') {
             return
           }
@@ -40,6 +83,24 @@ export async function POST(request: NextRequest) {
               text: 'ไม่สามารถอ่าน slip ได้ กรุณาส่งรูปใหม่อีกครั้ง',
             })
             return
+          }
+
+          // Receiver validation
+          const targetAccount = process.env.TARGET_BANK_ACCOUNT
+          if (targetAccount) {
+            const receiverAccountNumber = slipResult.receiverAccountNumber
+            const isValidReceiver =
+              receiverAccountNumber != null &&
+              (receiverAccountNumber.slice(-4) === targetAccount.slice(-4) ||
+                receiverAccountNumber === targetAccount)
+
+            if (!isValidReceiver) {
+              await lineClient().replyMessage(replyToken, {
+                type: 'text',
+                text: `❌ ไม่พบการโอนเงินเข้าบัญชีที่กำหนด\nกรุณาโอนเข้าบัญชี: ${targetAccount}\nแล้วส่ง slip ใหม่อีกครั้ง`,
+              })
+              return
+            }
           }
 
           await saveSlip({
