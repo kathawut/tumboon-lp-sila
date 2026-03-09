@@ -32,28 +32,27 @@ export async function verifySlip(imageBase64: string): Promise<SlipResult | null
     }
 
     const slip = data.data
-    const payDate =
-      slip.date || slip.transDate || slip.payDate || new Date().toISOString()
+    const payDate = slip.date || slip.transRef || new Date().toISOString()
 
     return {
       payDate,
-      amount: typeof slip.amount?.amount === 'number' ? slip.amount.amount : 0,
+      amount: slip.amount?.amount ?? 0,
       sender: {
         bank: {
-          code: slip.sender?.bank?.code ?? '',
-          name: slip.sender?.bank?.name ?? '',
+          code: slip.sender?.bank?.id ?? slip.sender?.bank?.short ?? '',
+          name: slip.sender?.bank?.name ?? slip.sender?.bank?.short ?? '',
         },
         account: {
-          name: slip.sender?.account?.name ?? '',
+          name: slip.sender?.account?.name?.th ?? slip.sender?.account?.name?.en ?? '',
         },
       },
       receiver: {
         bank: {
-          code: slip.receiver?.bank?.code ?? '',
-          name: slip.receiver?.bank?.name ?? '',
+          code: slip.receiver?.bank?.id ?? slip.receiver?.bank?.short ?? '',
+          name: slip.receiver?.bank?.name ?? slip.receiver?.bank?.short ?? '',
         },
         account: {
-          name: slip.receiver?.account?.name ?? '',
+          name: slip.receiver?.account?.name?.th ?? slip.receiver?.account?.name?.en ?? '',
         },
       },
     }

@@ -42,14 +42,25 @@ export async function POST(request: NextRequest) {
             return
           }
 
+          const senderName =
+            typeof slipResult.sender.account.name === 'string'
+              ? slipResult.sender.account.name || 'ไม่ระบุ'
+              : 'ไม่ระบุ'
+          const receiverName =
+            typeof slipResult.receiver.account.name === 'string'
+              ? slipResult.receiver.account.name || 'ไม่ระบุ'
+              : 'ไม่ระบุ'
+          const senderBank = slipResult.sender.bank.name || 'ไม่ระบุ'
+          const receiverBank = slipResult.receiver.bank.name || 'ไม่ระบุ'
+
           await saveSlip({
             line_user_id: userId,
             message_id: messageId,
             amount: slipResult.amount,
-            sender_name: slipResult.sender.account.name,
-            sender_bank: slipResult.sender.bank.name,
-            receiver_name: slipResult.receiver.account.name,
-            receiver_bank: slipResult.receiver.bank.name,
+            sender_name: senderName,
+            sender_bank: senderBank,
+            receiver_name: receiverName,
+            receiver_bank: receiverBank,
             pay_date: slipResult.payDate,
             raw_response: slipResult as unknown as object,
           })
@@ -58,8 +69,8 @@ export async function POST(request: NextRequest) {
             '✅ บันทึก Slip สำเร็จ',
             `📅 วันที่: ${slipResult.payDate}`,
             `💰 จำนวนเงิน: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท`,
-            `👤 ผู้โอน: ${slipResult.sender.account.name} (${slipResult.sender.bank.name})`,
-            `🏦 ผู้รับ: ${slipResult.receiver.account.name} (${slipResult.receiver.bank.name})`,
+            `👤 ผู้โอน: ${senderName} (${senderBank})`,
+            `🏦 ผู้รับ: ${receiverName} (${receiverBank})`,
           ].join('\n')
 
           await lineClient().replyMessage(replyToken, { type: 'text', text: replyText })
