@@ -38,6 +38,8 @@ export async function verifySlip(imageBase64: string): Promise<SlipResult | null
     return {
       payDate,
       amount: typeof slip.amount?.amount === 'number' ? slip.amount.amount : 0,
+      transRef: slip.transRef || slip.transId || '',
+      receiverAccountNumber: slip.receiver?.account?.bank?.account || '',
       sender: {
         bank: {
           code: slip.sender?.bank?.code ?? '',

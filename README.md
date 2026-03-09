@@ -56,7 +56,40 @@ create table slips (
 );
 ```
 
-### 4. Deploy บน Vercel
+### 4. รัน Migration (ป้องกัน Slip ซ้ำ + บัญชีปลายทาง)
+
+รัน SQL จากไฟล์ `supabase/migrations/002_add_target_accounts.sql` ใน Supabase SQL Editor:
+
+```sql
+-- เพิ่ม trans_ref column ในตาราง slips
+alter table slips add column if not exists trans_ref text;
+create unique index if not exists slips_trans_ref_idx on slips(trans_ref) where trans_ref is not null;
+
+-- สร้างตาราง target_accounts
+create table if not exists target_accounts (
+  id uuid default gen_random_uuid() primary key,
+  bank_name text not null,
+  account_number text not null unique,
+  account_name text not null,
+  is_active boolean default true,
+  created_at timestamptz default now()
+);
+```
+
+### 5. เพิ่มบัญชีปลายทางใน Supabase
+
+เปิด **Supabase Table Editor** → ตาราง `target_accounts` → Insert row:
+
+| Column | ค่าตัวอย่าง |
+|--------|-------------|
+| `bank_name` | `ธนาคารกสิกรไทย` |
+| `account_number` | `0123456789` |
+| `account_name` | `นาย สมชาย ใจดี` |
+| `is_active` | `true` |
+
+> **หมายเหตุ:** ถ้าตาราง `target_accounts` ไม่มีข้อมูล (ว่าง) ระบบจะยอมรับทุกบัญชีเหมือนเดิม
+
+### 6. Deploy บน Vercel
 
 ```bash
 npx vercel
@@ -74,7 +107,7 @@ npx vercel
 | `NEXT_PUBLIC_SUPABASE_URL` | Supabase Project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase Service Role Key |
 
-### 5. ตั้งค่า LINE Webhook URL
+### 7. ตั้งค่า LINE Webhook URL
 
 ใน LINE Developers Console > Messaging API > Webhook URL:
 
@@ -83,6 +116,16 @@ https://<your-vercel-domain>/api/webhook
 ```
 
 เปิดใช้งาน "Use webhook"
+
+## ฟีเจอร์
+
+### ป้องกัน Slip ซ้ำ
+
+ระบบตรวจสอบ `transRef` (Transaction Reference ID) จาก EasySlip ก่อนบันทึกทุกครั้ง หากพบว่า Slip นั้นถูกบันทึกไปแล้ว จะแจ้งเตือนผู้ใช้และไม่บันทึกซ้ำ
+
+### ตรวจสอบบัญชีปลายทาง
+
+ระบบดึงบัญชีปลายทางที่ active จากตาราง `target_accounts` และตรวจสอบว่าการโอนเงินตรงกับบัญชีที่กำหนดหรือไม่ หากไม่ตรง จะแจ้งข้อมูลบัญชีที่ถูกต้องให้ผู้ใช้
 
 ## File Structure
 
@@ -98,6 +141,9 @@ tumboon-lp-sila/
 │   ├── line.ts                 # LINE SDK client & helpers
 │   ├── slip.ts                 # EasySlip API integration
 │   └── supabase.ts             # Supabase client
+├── supabase/
+│   └── migrations/
+│       └── 002_add_target_accounts.sql  # DB migration
 ├── types/
 │   └── slip.ts                 # TypeScript types
 ├── .env.local.example

@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import type { WebhookEvent } from '@line/bot-sdk'
 import { verifySignature, lineClient, downloadImage } from '@/lib/line'
 import { verifySlip } from '@/lib/slip'
-import { saveSlip } from '@/lib/supabase'
+import { saveSlip, checkDuplicateSlip, getActiveTargetAccounts } from '@/lib/supabase'
 
 export const dynamic = 'force-dynamic'
 
@@ -42,6 +42,37 @@ export async function POST(request: NextRequest) {
             return
           }
 
+          if (slipResult.transRef) {
+            const isDuplicate = await checkDuplicateSlip(slipResult.transRef)
+            if (isDuplicate) {
+              await lineClient().replyMessage(replyToken, {
+                type: 'text',
+                text: '⚠️ Slip นี้ถูกบันทึกไปแล้ว\nกรุณาตรวจสอบอีกครั้ง',
+              })
+              return
+            }
+          }
+
+          const targetAccounts = await getActiveTargetAccounts()
+
+          if (targetAccounts.length > 0) {
+            const receiverAccountNum = slipResult.receiverAccountNumber || ''
+            const isValidReceiver = targetAccounts.some(
+              (ta) =>
+                receiverAccountNum.includes(ta.account_number.slice(-4)) ||
+                receiverAccountNum === ta.account_number,
+            )
+
+            if (!isValidReceiver) {
+              const primaryAccount = targetAccounts[0]
+              await lineClient().replyMessage(replyToken, {
+                type: 'text',
+                text: `❌ ไม่พบการโอนเงินเข้าบัญชีที่กำหนด\n\nกรุณาโอนเข้าบัญชี:\n🏦 ${primaryAccount.bank_name}\n👤 ${primaryAccount.account_name}\n🔢 ${primaryAccount.account_number}\n\nแล้วส่ง slip ใหม่อีกครั้งครับ 🙏`,
+              })
+              return
+            }
+          }
+
           await saveSlip({
             line_user_id: userId,
             message_id: messageId,
@@ -52,6 +83,7 @@ export async function POST(request: NextRequest) {
             receiver_bank: slipResult.receiver.bank.name,
             pay_date: slipResult.payDate,
             raw_response: slipResult as unknown as object,
+            trans_ref: slipResult.transRef,
           })
 
           const replyText = [
