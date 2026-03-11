@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
 
             await lineClient().replyMessage(replyToken, {
               type: 'text',
-              text: `✅ บันทึก Slip สำเร็จ\n📅 วันที่: ${slipResult.payDate}\n💰 ยอดรวม: ${newTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\n🪨 ชื่อที่จะสลักลงหินอ่อน:\n"${senderName}"\n\nถ้าต้องการแก้ไขชื่อ พิมพ์ชื่อที่ต้องการได้เลย\nหรือพิมพ์ ✅ ถ้าถูกต้องแล้วครับ 🙏`,
+              text: `✅ บันทึก Slip สำเร็จ\n📅 วันที่: ${slipResult.payDate}\n💰 ยอดรวม: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\n🪨 ชื่อที่จะสลักลงหินอ่อน:\n"${senderName}"\n\nถ้าต้องการแก้ไขชื่อ พิมพ์ชื่อที่ต้องการได้เลย\nหรือพิมพ์ ✅ ถ้าถูกต้องแล้วครับ 🙏`,
             })
           }
         } catch (eventError) {
