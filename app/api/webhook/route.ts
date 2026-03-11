@@ -28,6 +28,31 @@ function buildWelcomeMessage(
   return `🙏 สวัสดีครับ/ค่ะ ยินดีต้อนรับสู่การทำบุญออนไลน์${accountInfo}\n💰 ยอดทำบุญ: ${Number(requiredAmount).toLocaleString('th-TH')} บาท\n\n📸 เมื่อโอนเรียบร้อยแล้ว กรุณาส่งสลิปการโอนเงินทาง LINE นี้ได้เลยครับ/ค่ะ 🙏`
 }
 
+/**
+ * Normalize account number by removing dashes, spaces, and masked 'x' characters.
+ * EasySlip returns masked accounts like "xxx-x-x9961-x"
+ * DB stores full account numbers like "2278199617"
+ * After normalizing: "9961" and "2278199617"
+ * We check if DB number contains the visible digits from the slip.
+ */
+function normalizeAccount(account: string): string {
+  return account.replace(/[-x\\s]/gi, '')
+}
+
+function isReceiverMatch(slipAccountRaw: string, dbAccount: string): boolean {
+  if (!slipAccountRaw) return false
+  const slipDigits = normalizeAccount(slipAccountRaw)  // e.g. "9961"
+  const dbDigits = normalizeAccount(dbAccount)          // e.g. "2278199617"
+  if (!slipDigits) return false
+  // Exact match after normalization
+  if (slipDigits === dbDigits) return true
+  // DB full number contains the visible digits from masked slip
+  if (dbDigits.includes(slipDigits)) return true
+  // Last 4 digits match (fallback)
+  if (slipDigits.length >= 4 && dbDigits.endsWith(slipDigits.slice(-4))) return true
+  return false
+}
+
 export async function POST(request: NextRequest) {
   try {
     const arrayBuffer = await request.arrayBuffer()
@@ -119,13 +144,13 @@ export async function POST(request: NextRequest) {
             }
 
             // เช็คบัญชีปลายทาง
+            // EasySlip คืน masked account เช่น "xxx-x-x9961-x"
+            // DB เก็บ full account เช่น "2278199617"
+            // ใช้ isReceiverMatch() เพื่อรองรับทั้ง 2 format
             if (targetAccounts.length > 0) {
               const receiverAccountNum = slipResult.receiverAccountNumber || ''
-              const isValidReceiver = targetAccounts.some(
-                (ta) =>
-                  receiverAccountNum.replace(/-/g, '').slice(-4) ===
-                    ta.account_number.replace(/-/g, '').slice(-4) ||
-                  receiverAccountNum === ta.account_number
+              const isValidReceiver = targetAccounts.some((ta) =>
+                isReceiverMatch(receiverAccountNum, ta.account_number)
               )
               if (!isValidReceiver) {
                 const primary = targetAccounts[0]
@@ -175,7 +200,7 @@ export async function POST(request: NextRequest) {
             const slipImageUrl = await uploadSlipImage(
               userId,
               slipResult.transRef || messageId,
-              imageBuffer
+              imageBuffer,
             )
 
             const senderName = slipResult.sender.account.name || 'ไม่ระบุ'
@@ -216,4 +241,3 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ status: 'ok' }, { status: 200 })
   }
 }
-
