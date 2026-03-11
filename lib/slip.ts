@@ -35,11 +35,20 @@ export async function verifySlip(imageBase64: string): Promise<SlipResult | null
     const payDate =
       slip.date || slip.transDate || slip.payDate || new Date().toISOString()
 
+    // Debug log to trace EasySlip receiver structure
+    console.log('[EasySlip] receiver raw:', JSON.stringify(slip.receiver, null, 2))
+
     return {
       payDate,
       amount: typeof slip.amount?.amount === 'number' ? slip.amount.amount : 0,
       transRef: slip.transRef || slip.transId || '',
-      receiverAccountNumber: slip.receiver?.account?.bank?.account || '',
+      // Fix: use correct fallback paths for receiver account number
+      receiverAccountNumber:
+        slip.receiver?.account?.number ||
+        slip.receiver?.account?.account ||
+        slip.receiver?.account?.proxy?.account ||
+        slip.receiver?.account?.bank?.account ||
+        '',
       sender: {
         bank: {
           code: slip.sender?.bank?.code ?? '',
@@ -63,4 +72,3 @@ export async function verifySlip(imageBase64: string): Promise<SlipResult | null
     return null
   }
 }
-
