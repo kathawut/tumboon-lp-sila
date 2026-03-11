@@ -2,6 +2,20 @@ import type { SlipResult } from '@/types/slip'
 
 const EASYSLIP_API_URL = 'https://developer.easyslip.com/api/v1/verify'
 
+/**
+ * EasySlip returns account name as either a string or an object like { th: "...", en: "..." }
+ * This helper extracts the string value safely.
+ */
+function extractName(name: unknown): string {
+  if (!name) return ''
+  if (typeof name === 'string') return name
+  if (typeof name === 'object') {
+    const n = name as Record<string, string>
+    return n.th || n.en || Object.values(n)[0] || ''
+  }
+  return String(name)
+}
+
 export async function verifySlip(imageBase64: string): Promise<SlipResult | null> {
   const apiKey = process.env.EASYSLIP_API_KEY
   if (!apiKey) {
@@ -35,14 +49,11 @@ export async function verifySlip(imageBase64: string): Promise<SlipResult | null
     const payDate =
       slip.date || slip.transDate || slip.payDate || new Date().toISOString()
 
-    // Debug log to trace EasySlip receiver structure
-    console.log('[EasySlip] receiver raw:', JSON.stringify(slip.receiver, null, 2))
-
     return {
       payDate,
       amount: typeof slip.amount?.amount === 'number' ? slip.amount.amount : 0,
       transRef: slip.transRef || slip.transId || '',
-      // Fix: use correct fallback paths for receiver account number
+      // EasySlip returns masked account like "xxx-x-x9961-x"
       receiverAccountNumber:
         slip.receiver?.account?.number ||
         slip.receiver?.account?.account ||
@@ -55,7 +66,8 @@ export async function verifySlip(imageBase64: string): Promise<SlipResult | null
           name: slip.sender?.bank?.name ?? '',
         },
         account: {
-          name: slip.sender?.account?.name ?? '',
+          // name can be a string or { th: "...", en: "..." }
+          name: extractName(slip.sender?.account?.name),
         },
       },
       receiver: {
@@ -64,7 +76,8 @@ export async function verifySlip(imageBase64: string): Promise<SlipResult | null
           name: slip.receiver?.bank?.name ?? '',
         },
         account: {
-          name: slip.receiver?.account?.name ?? '',
+          // name can be a string or { th: "...", en: "..." }
+          name: extractName(slip.receiver?.account?.name),
         },
       },
     }
