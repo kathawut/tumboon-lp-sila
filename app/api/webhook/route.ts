@@ -165,38 +165,8 @@ export async function POST(request: NextRequest) {
             // เช็คยอดเงินสะสม (รวมกับที่โอนมาก่อนหน้า)
             const previousTotal = await getTotalPaidAmount(userId)
             const newTotal = previousTotal + Number(slipResult.amount)
-            const remaining = requiredAmount - newTotal
 
-            if (newTotal < requiredAmount) {
-              // ยอดยังไม่ครบ — บันทึก slip นี้ไว้ก่อน แต่แจ้งให้โอนเพิ่ม
-              const slipImageUrl = await uploadSlipImage(
-                userId,
-                slipResult.transRef || messageId,
-                imageBuffer
-              )
-
-              await saveSlip({
-                line_user_id: userId,
-                message_id: messageId,
-                trans_ref: slipResult.transRef,
-                amount: slipResult.amount,
-                sender_name: slipResult.sender.account.name,
-                sender_bank: slipResult.sender.bank.name,
-                receiver_name: slipResult.receiver.account.name,
-                receiver_bank: slipResult.receiver.bank.name,
-                pay_date: slipResult.payDate,
-                slip_image_url: slipImageUrl,
-                raw_response: slipResult as unknown as object,
-              })
-
-              await lineClient().replyMessage(replyToken, {
-                type: 'text',
-                text: `✅ รับ slip แล้วครับ\n💰 โอนมาแล้ว: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n📊 ยอดสะสม: ${newTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} / ${requiredAmount.toLocaleString('th-TH')} บาท\n⚠️ ยังขาดอีก: ${remaining.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nกรุณาโอนเพิ่มแล้วส่ง slip มาอีกครั้งครับ 🙏`,
-              })
-              return
-            }
-
-            // ยอดครบ — บันทึก + อัพโหลดรูป
+            // บันทึก slip เสมอ ไม่ว่ายอดจะถึงหรือไม่
             const slipImageUrl = await uploadSlipImage(
               userId,
               slipResult.transRef || messageId,
@@ -219,15 +189,23 @@ export async function POST(request: NextRequest) {
               raw_response: slipResult as unknown as object,
             })
 
-            // ตั้ง session รอยืนยันชื่อ
-            if (savedSlip?.id) {
-              await setUserSession(userId, 'waiting_name_confirm', savedSlip.id, senderName)
-            }
+            if (newTotal >= requiredAmount) {
+              // ได้สิทธิสลักชื่อ — ตั้ง session + ถามชื่อ
+              if (savedSlip?.id) {
+                await setUserSession(userId, 'waiting_name_confirm', savedSlip.id, senderName)
+              }
 
-            await lineClient().replyMessage(replyToken, {
-              type: 'text',
-              text: `✅ บันทึก Slip สำเร็จ\n📅 วันที่: ${slipResult.payDate}\n💰 ยอดรวม: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\n🪨 ชื่อที่จะสลักลงหินอ่อน:\n"${senderName}"\n\nถ้าต้องการแก้ไขชื่อ พิมพ์ชื่อที่ต้องการได้เลย\nหรือพิมพ์ ✅ ถ้าถูกต้องแล้วครับ 🙏`,
-            })
+              await lineClient().replyMessage(replyToken, {
+                type: 'text',
+                text: `✅ บันทึก Slip สำเร็จ\n💰 ยอดรวมของท่าน: ${newTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\n🪨 ท่านได้รับสิทธิ์สลักชื่อบนหินอ่อน!\n\nชื่อที่จะสลัก:\n"${senderName}"\n\nถ้าต้องการแก้ไขชื่อ พิมพ์ชื่อที่ต้องการได้เลย\nหรือพิมพ์ ✅ ถ้าถูกต้องแล้วครับ 🙏`,
+              })
+            } else {
+              // ยอดไม่ถึง requiredAmount — ขอบคุณ + อวยพร (ไม่บอกว่าขาดเท่าไหร่)
+              await lineClient().replyMessage(replyToken, {
+                type: 'text',
+                text: `🙏 ขอบคุณสำหรับการร่วมทำบุญครับ\n💰 รับ slip จำนวน ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท เรียบร้อยแล้ว\n\nขออำนาจคุณพระศรีรัตนตรัยและสิ่งศักดิ์สิทธิ์ทั้งหลาย\nจงดลบันดาลให้ท่านและครอบครัว\nมีความสุข ความเจริญ สุขภาพแข็งแรง\nตลอดไปครับ 🙏✨`,
+              })
+            }
           }
         } catch (eventError) {
           console.error('Error processing event:', eventError)
