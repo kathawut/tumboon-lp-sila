@@ -165,7 +165,7 @@ export async function POST(request: NextRequest) {
             // เช็คยอดเงินสะสม (รวมกับที่โอนมาก่อนหน้า)
             const previousTotal = await getTotalPaidAmount(userId)
             const newTotal = previousTotal + Number(slipResult.amount)
-            const remaining = requiredAmount - newTotal
+
 
             if (newTotal < requiredAmount) {
               // ยอดยังไม่ครบ — บันทึก slip นี้ไว้ก่อน แต่แจ้งให้โอนเพิ่ม
@@ -191,7 +191,7 @@ export async function POST(request: NextRequest) {
 
               await lineClient().replyMessage(replyToken, {
                 type: 'text',
-                text: `✅ รับ slip แล้วครับ\n💰 โอนมาแล้ว: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n📊 ยอดสะสม: ${newTotal.toLocaleString('th-TH', { minimumFractionDigits: 2 })} / ${requiredAmount.toLocaleString('th-TH')} บาท\n⚠️ ยังขาดอีก: ${remaining.toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\nกรุณาโอนเพิ่มแล้วส่ง slip มาอีกครั้งครับ 🙏`,
+                text: `✅ รับ slip แล้วครับ ขอบคุณมากครับ 🙏\nขอผลบุญนี้หนุนนำให้ชีวิตรุ่งเรือง เฮงๆ รวยๆ ปลดหนี้ปลดสิน มีกิจการงานที่รุ่งเรือง`,
               })
               return
             }
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
 
             await lineClient().replyMessage(replyToken, {
               type: 'text',
-              text: `✅ บันทึก Slip สำเร็จ\n📅 วันที่: ${slipResult.payDate}\n💰 ยอดรวม: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\n🪨 ชื่อที่จะสลักลงหินอ่อน:\n"${senderName}"\n\nถ้าต้องการแก้ไขชื่อ พิมพ์ชื่อที่ต้องการได้เลย\nหรือพิมพ์ ✅ ถ้าถูกต้องแล้วครับ 🙏`,
+              text: `✅ บันทึก Slip สำเร็จ\n📅 วันที่: ${slipResult.payDate}\n💰 ยอดรวม: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\n🪨 ชื่อที่จะสลักลงหินอ่อน:\n"${senderName}"\n\nถ้าต้องการแก้ไขชื่อ พิมพ์ชื่อที่ต้องการได้เลย\nหรือพิมพ์ ✅ ถ้าถูกต้องแล้วครับ 🙏\n\nขอผลบุญนี้หนุนนำให้ชีวิตรุ่งเรือง เฮงๆ รวยๆ ปลดหนี้ปลดสิน มีกิจการงานที่รุ่งเรือง`,
             })
           }
         } catch (eventError) {
