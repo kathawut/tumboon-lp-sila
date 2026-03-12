@@ -94,7 +94,7 @@ export async function POST(request: NextRequest) {
               await clearUserSession(userId)
               await lineClient().replyMessage(replyToken, {
                 type: 'text',
-                text: `✅ บันทึกชื่อสำหรับสลักหินอ่อน:\n"${confirmedName}"\nเรียบร้อยแล้วครับ 🙏`,
+                text: `✅ บันทึกชื่อผู้ร่วมทำบุญ:\n"${confirmedName}"\nเรียบร้อยแล้วครับ 🙏`,
               })
               return
             }
@@ -226,7 +226,7 @@ export async function POST(request: NextRequest) {
 
             await lineClient().replyMessage(replyToken, {
               type: 'text',
-              text: `✅ บันทึก Slip สำเร็จ\n📅 วันที่: ${slipResult.payDate}\n💰 ยอดรวม: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\n🪨 ชื่อที่จะสลักลงหินอ่อน:\n"${senderName}"\n\nถ้าต้องการแก้ไขชื่อ พิมพ์ชื่อที่ต้องการได้เลย\nหรือพิมพ์ ✅ ถ้าถูกต้องแล้วครับ 🙏\n\nขอผลบุญนี้หนุนนำให้ชีวิตรุ่งเรือง เฮงๆ รวยๆ ปลดหนี้ปลดสิน มีกิจการงานที่รุ่งเรือง`,
+              text: `✅ บันทึก Slip สำเร็จ\n📅 วันที่: ${slipResult.payDate}\n💰 ยอดรวม: ${Number(slipResult.amount).toLocaleString('th-TH', { minimumFractionDigits: 2 })} บาท\n\n🪨 ชื่อผู้ร่วมทำบุญ:\n"${senderName}"\n\nถ้าต้องการแก้ไขชื่อ พิมพ์ชื่อที่ต้องการได้เลย\nหรือพิมพ์ ✅ ถ้าถูกต้องแล้วครับ 🙏\n\nขอผลบุญนี้หนุนนำให้ชีวิตรุ่งเรือง เฮงๆ รวยๆ ปลดหนี้ปลดสิน มีกิจการงานที่รุ่งเรือง`,
             })
           }
         } catch (eventError) {
